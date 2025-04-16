@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Clicker Mayhem</title>
+    <style>
+        /* Your existing CSS remains unchanged */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Bangers', 'Comic Sans MS', cursive, sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&display=swap');
+
+        body {
+            background-color: #440154;
+            color: #fcfcfc;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #440154, #3b528b, #21908d, #5dc963, #fde725);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .header {
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.6);
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            position: relative;
+            border-bottom: 3px solid #ff6b6b;
+        }
+
+        .score-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(to right, #f72585, #7209b7);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 2px solid #f3f3f3;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform: rotate(-2deg);
+        }
+
+        .score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #fcfcfc;
+            text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+        }
+
+        .level {
+            font-size: 20px;
+            color: #fcfcfc;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+        }
+
+        .timer {
+            font-size: 22px;
+            font-weight: bold;
+            color: #fcfcfc;
+            background: linear-gradient(to right, #4cc9f0, #4361ee);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 2px solid #f3f3f3;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+            transform: rotate(2deg);
+        }
+
+        .game-area {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path fill="rgba(0,0,0,0.1)" d="M0 0h50v50H0zM50 50h50v50H50z"/></svg>');
+            background-size: 30px 30px;
+            overflow: hidden;
+        }
+
+        .game-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.5) 100%);
+            pointer-events: none;
+        }
+
+        .zombie {
+            position: absolute;
+            cursor: crosshair;
+            transition: transform 0.1s;
+            filter: drop-shadow(5px 5px 8px rgba(0, 0, 0, 0.7));
+        }
+
+        .zombie:hover {
+            transform: scale(1.08);
+            filter: brightness(1.2) drop-shadow(5px 5px 8px rgba(0, 0, 0, 0.7));
+        }
+
+        .zombie.hit {
+            animation: hit 0.3s ease-out;
+            opacity: 0;
+        }
+
+        @keyframes hit {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+                filter: brightness(1);
+            }
+            30% {
+                transform: scale(1.3) rotate(10deg);
+                opacity: 0.8;
+                filter: brightness(3);
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+                filter: brightness(5);
+            }
+        }
+
+        .blood-splatter {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #ff0000 0%, rgba(255, 0, 0, 0) 70%);
+            filter: blur(4px);
+            opacity: 0;
+            animation: splatter 1s ease-out;
+            z-index: 0;
+        }
+
+        @keyframes splatter {
+            0% {
+                transform: scale(0);
+                opacity: 0.9;
+            }
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        .bullet-hole {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, #000000 40%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(68, 1, 84, 0.9), rgba(59, 82, 139, 0.9), rgba(33, 144, 141, 0.9));
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .game-over-content {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 50px;
+            border-radius: 20px;
+            border: 4px solid #ff6b6b;
+            box-shadow: 0 0 50px rgba(255, 107, 107, 0.8), 0 0 100px rgba(255, 107, 107, 0.5);
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .game-over h1 {
+            font-size: 80px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            text-shadow: 5px 5px 0px rgba(0, 0, 0, 0.6);
+            letter-spacing: 2px;
+        }
+
+        .game-over p {
+            font-size: 30px;
+            color: #4cc9f0;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.6);
+        }
+
+        .restart-btn {
+            padding: 20px 40px;
+            background: linear-gradient(to right, #f72585, #7209b7);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            font-family: 'Bangers', cursive;
+            letter-spacing: 2px;
+        }
+
+        .restart-btn:hover {
+            background: linear-gradient(to right, #7209b7, #f72585);
+            transform: scale(1.1) rotate(-3deg);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .click-value {
+            position: absolute;
+            color: #ffff00;
+            font-weight: bold;
+            font-size: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), -2px -2px 4px rgba(0, 0, 0, 0.8);
+            animation: float-up 1s ease-out;
+            z-index: 5;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-80px) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .health-bar-container {
+            position: absolute;
+            bottom: -12px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .health-bar {
+            height: 100%;
+            background: linear-gradient(to right, #ff0000, #ff6b6b);
+            transition: width 0.3s;
+        }
+
+        .cursor {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="none" stroke="%23ff0000" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="%23ff0000"/><line x1="2" y1="12" x2="22" y2="12" stroke="%23ff0000" stroke-width="1"/><line x1="12" y1="2" x2="12" y2="22" stroke="%23ff0000" stroke-width="1"/></svg>');
+            background-size: contain;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.9;
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(to right, #fb5607, #ff006e);
+            padding: 10px 25px;
+            border-radius: 20px;
+            transform: rotate(-3deg);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid #fcfcfc;
+        }
+
+        .zombie-icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 15px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .game-title {
+            font-family: 'Bangers', cursive;
+            color: #fcfcfc;
+            font-size: 36px;
+            text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.6);
+            letter-spacing: 2px;
+        }
+
+        .streak-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(to right, #4cc9f0, #4361ee);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 2px solid #fcfcfc;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 50;
+            transform: rotate(3deg);
+        }
+
+        .streak {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fcfcfc;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+        }
+
+        .combo-multiplier {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.9));
+            padding: 15px 30px;
+            border-radius: 15px;
+            border: 3px solid #fcfcfc;
+            font-size: 30px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.7);
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .power-ups {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        .power-up {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(to bottom right, #4cc9f0, #3a0ca3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: #fcfcfc;
+            cursor: pointer;
+            border: 2px solid #fcfcfc;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+
+        .power-up:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .power-up.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .particles {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ffff00;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.8;
+            z-index: 0;
+        }
+
+        @keyframes particle-animation {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(var(--x), var(--y)) scale(0);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="title-container">
+                <div class="zombie-icon">🧟</div>
+                <div class="game-title">ZOMBIE SMASH!</div>
+            </div>
+            <div class="score-container">
+                <div class="score">Score: 0</div>
+                <div class="level">Level: 1</div>
+            </div>
+            <div class="timer">Time: 60s</div>
+        </div>
+        <div class="game-area"></div>
+        <div class="cursor"></div>
+        <div class="streak-container">
+            <div class="streak">Streak: 0</div>
+        </div>
+        <div class="combo-multiplier">COMBO x2!</div>
+        <div class="power-ups">
+            <div class="power-up freeze" title="Freeze Zombies">❄️</div>
+            <div class="power-up bomb" title="Bomb All Zombies">💣</div>
+            <div class="power-up double" title="Double Points">2️⃣</div>
+        </div>
+        <div class="game-over">
+            <div class="game-over-content">
+                <h1>GAME OVER!</h1>
+                <p>Final Score: <span class="final-score">0</span></p>
+                <button class="restart-btn">PLAY AGAIN!</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create base64 encoded images from the placeholders
+        const zombie1 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjU1MCIgdmlld0JveD0iMCAwIDMwMCA1NTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzAwYTg4OCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjIwcHgiPlBvZ28gWm9tYmllPC90ZXh0Pjwvc3ZnPg==`;
+        const zombie2 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDMwMCA0MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzAwNjY2NiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjIwcHgiPlJlZ3VsYXIgWm9tYmllPC90ZXh0Pjwvc3ZnPg==`;
+
+        // Game constants
+        const GAME_DURATION = 60; // seconds
+        const BASE_ZOMBIE_SPAWN_RATE = 2000; // milliseconds
+        const MIN_ZOMBIE_SPAWN_RATE = 300; // minimum milliseconds between spawns
+        const LEVEL_THRESHOLD = 50; // score needed to increase level
+        const MAX_ZOMBIES = 12; // maximum zombies on screen
+        const ZOMBIE_IMAGES = [
+            { src: zombie1, width: 120, type: "pogo" }, // Pogo zombie
+            { src: zombie2, width: 100, type: "regular" } // Regular zombie
+        ];
+
+        // Game state
+        let gameActive = false;
+        let score = 0;
+        let level = 1;
+        let timeRemaining = GAME_DURATION;
+        let zombieSpawnRate = BASE_ZOMBIE_SPAWN_RATE;
+        let zombieSpeed = 1;
+        let zombieHealth = 1;
+        let zombieCount = 0;
+        let gameTimer;
+        let spawnTimer;
+        let killStreak = 0;
+        let lastKillTime = 0;
+        let comboTimer;
+        let pointsMultiplier = 1;
+        let freezeActive = false;
+        let doublePointsActive = false;
+
+        // DOM elements
+        const gameArea = document.querySelector('.game-area');
+        const scoreDisplay = document.querySelector('.score');
+        const levelDisplay = document.querySelector('.level');
+        const timerDisplay = document.querySelector('.timer');
+        const gameOverScreen = document.querySelector('.game-over');
+        const finalScoreDisplay = document.querySelector('.final-score');
+        const restartBtn = document.querySelector('.restart-btn');
+        const cursor = document.querySelector('.cursor');
+        const streakDisplay = document.querySelector('.streak');
+        const comboDisplay = document.querySelector('.combo-multiplier');
+        const freezeBtn = document.querySelector('.power-up.freeze');
+        const bombBtn = document.querySelector('.power-up.bomb');
+        const doubleBtn = document.querySelector('.power-up.double');
+
+        // Custom cursor
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        // Spawn a zombie
+        function spawnZombie() {
+            if (!gameActive || zombieCount >= MAX_ZOMBIES) return;
+
+            // Select a random zombie type
+            const zombieData = ZOMBIE_IMAGES[Math.floor(Math.random() * ZOMBIE_IMAGES.length)];
+            const zombie = document.createElement('div');
+            zombie.classList.add('zombie');
+            zombie.style.width = `${zombieData.width}px`;
+            zombie.style.height = `${zombieData.width * 1.5}px`; // Assuming height is 1.5x width
+            zombie.style.backgroundImage = `url(${zombieData.src})`;
+            zombie.style.backgroundSize = 'contain';
+            zombie.style.backgroundRepeat = 'no-repeat';
+            zombie.dataset.health = zombieHealth;
+            zombie.dataset.type = zombieData.type;
+
+            // Calculate spawn position
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const maxX = gameAreaRect.width - zombieData.width;
+            const maxY = gameAreaRect.height - zombieData.width * 1.5;
+            const posX = Math.random() * maxX;
+            const posY = Math.random() * maxY;
+
+            zombie.style.left = `${posX}px`;
+            zombie.style.top = `${posY}px`;
+
+            // Set movement (if not frozen)
+            if (!freezeActive) {
+                const moveX = (Math.random() - 0.5) * zombieSpeed * 2;
+                const moveY = (Math.random() - 0.5) * zombieSpeed * 2;
+                zombie.dataset.moveX = moveX;
+                zombie.dataset.moveY = moveY;
+            } else {
+                zombie.dataset.moveX = 0;
+                zombie.dataset.moveY = 0;
+            }
+
+            // Add health bar
+            const healthBarContainer = document.createElement('div');
+            healthBarContainer.classList.add('health-bar-container');
+            const healthBar = document.createElement('div');
+            healthBar.classList.add('health-bar');
+            healthBar.style.width = '100%';
+            healthBarContainer.appendChild(healthBar);
+            zombie.appendChild(healthBarContainer);
+
+            gameArea.appendChild(zombie);
+            zombieCount++;
+
+            // Zombie click handler
+            zombie.addEventListener('click', (e) => {
+                if (!gameActive) return;
+
+                // Create blood splatter
+                const splatter = document.createElement('div');
+                splatter.classList.add('blood-splatter');
+                splatter.style.left = `${e.clientX - 60}px`;
+                splatter.style.top = `${e.clientY - 60}px`;
+                gameArea.appendChild(splatter);
+                setTimeout(() => {
+                    if (splatter.parentNode) splatter.parentNode.removeChild(splatter);
+                }, 1000);
+
+                // Update health
+                let health = parseInt(zombie.dataset.health) - 1;
+                zombie.dataset.health = health;
+                healthBar.style.width = `${(health / zombieHealth) * 100}%`;
+
+                if (health <= 0) {
+                    zombie.classList.add('hit');
+                    zombieCount--;
+
+                    // Update score
+                    const points = (zombieData.type === 'pogo' ? 2 : 1) * pointsMultiplier;
+                    score += points;
+                    updateUI();
+
+                    // Show points gained
+                    const clickValue = document.createElement('div');
+                    clickValue.classList.add('click-value');
+                    clickValue.textContent = `+${points}`;
+                    clickValue.style.left = `${e.clientX}px`;
+                    clickValue.style.top = `${e.clientY}px`;
+                    gameArea.appendChild(clickValue);
+                    setTimeout(() => {
+                        if (clickValue.parentNode) clickValue.parentNode.removeChild(clickValue);
+                    }, 1000);
+
+                    // Update streak
+                    const currentTime = Date.now();
+                    if (currentTime - lastKillTime < 2000) {
+                        killStreak++;
+                        if (killStreak >= 3) {
+                            pointsMultiplier = Math.min(3, Math.floor(killStreak / 3) + 1);
+                            comboDisplay.textContent = `COMBO x${pointsMultiplier}!`;
+                            comboDisplay.style.opacity = '1';
+                            clearTimeout(comboTimer);
+                            comboTimer = setTimeout(() => {
+                                comboDisplay.style.opacity = '0';
+                                pointsMultiplier = doublePointsActive ? 2 : 1;
+                            }, 3000);
+                        }
+                    } else {
+                        killStreak = 1;
+                        pointsMultiplier = doublePointsActive ? 2 : 1;
+                    }
+                    lastKillTime = currentTime;
+                    updateStreakDisplay();
+
+                    // Remove zombie after animation
+                    setTimeout(() => {
+                        if (zombie.parentNode) zombie.parentNode.removeChild(zombie);
+                    }, 300);
+                }
+            });
+
+            // Start zombie movement
+            moveZombie(zombie);
+        }
+
+        // Move zombies
+        function moveZombie(zombie) {
+            if (!gameActive || freezeActive) return;
+
+            const moveInterval = setInterval(() => {
+                if (!gameActive || !zombie.parentNode || freezeActive) {
+                    clearInterval(moveInterval);
+                    return;
+                }
+
+                let x = parseFloat(zombie.style.left);
+                let y = parseFloat(zombie.style.top);
+                const moveX = parseFloat(zombie.dataset.moveX);
+                const moveY = parseFloat(zombie.dataset.moveY);
+
+                x += moveX;
+                y += moveY;
+
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                const maxX = gameAreaRect.width - parseFloat(zombie.style.width);
+                const maxY = gameAreaRect.height - parseFloat(zombie.style.height);
+
+                // Bounce off walls
+                if (x < 0 || x > maxX) {
+                    zombie.dataset.moveX = -moveX;
+                    x = Math.max(0, Math.min(x, maxX));
+                }
+                if (y < 0 || y > maxY) {
+                    zombie.dataset.moveY = -moveY;
+                    y = Math.max(0, Math.min(y, maxY));
+                }
+
+                zombie.style.left = `${x}px`;
+                zombie.style.top = `${y}px`;
+            }, 16); // ~60fps
+        }
+
+        // Update timer
+        function updateTimer() {
+            timeRemaining--;
+            timerDisplay.textContent = `Time: ${timeRemaining}s`;
+
+            if (timeRemaining <= 0) {
+                endGame();
+            }
+        }
+
+        // Update UI
+        function updateUI() {
+            scoreDisplay.textContent = `Score: ${score}`;
+            levelDisplay.textContent = `Level: ${level}`;
+
+            // Update level
+            const newLevel = Math.floor(score / LEVEL_THRESHOLD) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                zombieSpawnRate = Math.max(MIN_ZOMBIE_SPAWN_RATE, BASE_ZOMBIE_SPAWN_RATE / level);
+                zombieSpeed = 1 + level * 0.2;
+                zombieHealth = Math.ceil(level * 1.5);
+                clearInterval(spawnTimer);
+                spawnTimer = setInterval(spawnZombie, zombieSpawnRate);
+            }
+        }
+
+        // Update streak display
+        function updateStreakDisplay() {
+            streakDisplay.textContent = `Streak: ${killStreak}`;
+        }
+
+        // End game
+        function endGame() {
+            gameActive = false;
+            clearInterval(gameTimer);
+            clearInterval(spawnTimer);
+            gameOverScreen.style.display = 'flex';
+            finalScoreDisplay.textContent = score;
+            document.body.style.cursor = 'auto';
+            cursor.style.display = 'none';
+        }
+
+        // Start the game
+        function startGame() {
+            resetGame();
+            gameActive = true;
+            gameTimer = setInterval(updateTimer, 1000);
+            spawnTimer = setInterval(spawnZombie, zombieSpawnRate);
+            gameOverScreen.style.display = 'none';
+            document.body.style.cursor = 'none';
+            cursor.style.display = 'block';
+            setupPowerUps();
+        }
+
+        // Reset game state
+        function resetGame() {
+            score = 0;
+            level = 1;
+            timeRemaining = GAME_DURATION;
+            zombieSpawnRate = BASE_ZOMBIE_SPAWN_RATE;
+            zombieSpeed = 1;
+            zombieHealth = 1;
+            zombieCount = 0;
+            killStreak = 0;
+            lastKillTime = 0;
+            pointsMultiplier = 1;
+            freezeActive = false;
+            doublePointsActive = false;
+
+            gameArea.innerHTML = '';
+            updateUI();
+            updateStreakDisplay();
+
+            freezeBtn.classList.remove('disabled');
+            bombBtn.classList.remove('disabled');
+            doubleBtn.classList.remove('disabled');
+        }
+
+        // Setup power-up buttons
+        function setupPowerUps() {
+            freezeBtn.addEventListener('click', () => {
+                if (gameActive && !freezeBtn.classList.contains('disabled')) {
+                    activateFreeze();
+                    freezeBtn.classList.add('disabled');
+                }
+            });
+
+            bombBtn.addEventListener('click', () => {
+                if (gameActive && !bombBtn.classList.contains('disabled')) {
+                    activateBomb();
+                    bombBtn.classList.add('disabled');
+                }
+            });
+
+            doubleBtn.addEventListener('click', () => {
+                if (gameActive && !doubleBtn.classList.contains('disabled')) {
+                    activateDoublePoints();
+                    doubleBtn.classList.add('disabled');
+                }
+            });
+        }
+
+        // Activate freeze power-up
+        function activateFreeze() {
+            freezeActive = true;
+
+            const freezeEffect = document.createElement('div');
+            freezeEffect.style.position = 'absolute';
+            freezeEffect.style.top = '0';
+            freezeEffect.style.left = '0';
+            freezeEffect.style.width = '100%';
+            freezeEffect.style.height = '100%';
+            freezeEffect.style.backgroundColor = 'rgba(0, 150, 255, 0.3)';
+            freezeEffect.style.zIndex = '5';
+            freezeEffect.style.pointerEvents = 'none';
+
+            gameArea.appendChild(freezeEffect);
+
+            const zombies = document.querySelectorAll('.zombie');
+            zombies.forEach(zombie => {
+                zombie.dataset.originalMoveX = zombie.dataset.moveX;
+                zombie.dataset.originalMoveY = zombie.dataset.moveY;
+                zombie.dataset.moveX = '0';
+                zombie.dataset.moveY = '0';
+                zombie.style.filter = 'brightness(0.7) sepia(1) hue-rotate(180deg)';
+            });
+
+            setTimeout(() => {
+                freezeActive = false;
+                if (freezeEffect.parentNode) {
+                    freezeEffect.parentNode.removeChild(freezeEffect);
+                }
+
+                const zombies = document.querySelectorAll('.zombie');
+                zombies.forEach(zombie => {
+                    if (zombie.dataset.originalMoveX) {
+                        zombie.dataset.moveX = zombie.dataset.originalMoveX;
+                        zombie.dataset.moveY = zombie.dataset.originalMoveY;
+                        zombie.style.filter = 'drop-shadow(5px 5px 8px rgba(0, 0, 0, 0.7))';
+                    }
+                });
+            }, 5000);
+        }
+
+        // Activate bomb power-up
+        function activateBomb() {
+            const explosion = document.createElement('div');
+            explosion.style.position = 'absolute';
+            explosion.style.top = '0';
+            explosion.style.left = '0';
+            explosion.style.width = '100%';
+            explosion.style.height = '100%';
+            explosion.style.backgroundColor = 'white';
+            explosion.style.zIndex = '90';
+            explosion.style.opacity = '0';
+            explosion.style.transition = 'opacity 0.1s';
+            explosion.style.pointerEvents = 'none';
+
+            gameArea.appendChild(explosion);
+
+            setTimeout(() => {
+                explosion.style.opacity = '1';
+
+                const shockwave = document.createElement('div');
+                shockwave.style.position = 'absolute';
+                shockwave.style.top = '50%';
+                shockwave.style.left = '50%';
+                shockwave.style.width = '10px';
+                shockwave.style.height = '10px';
+                shockwave.style.borderRadius = '50%';
+                shockwave.style.backgroundColor = 'transparent';
+                shockwave.style.border = '5px solid rgba(255, 100, 0, 0.8)';
+                shockwave.style.transform = 'translate(-50%, -50%)';
+                shockwave.style.zIndex = '91';
+                shockwave.style.transition = 'all 0.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
+
+                gameArea.appendChild(shockwave);
+
+                setTimeout(() => {
+                    shockwave.style.width = '2000px';
+                    shockwave.style.height = '2000px';
+                    shockwave.style.opacity = '0';
+                    explosion.style.opacity = '0';
+
+                    const zombies = document.querySelectorAll('.zombie');
+                    let killedCount = 0;
+
+                    zombies.forEach((zombie, index) => {
+                        setTimeout(() => {
+                            zombie.classList.add('hit');
+                            zombieCount--;
+                            killedCount++;
+
+                            setTimeout(() => {
+                                if (zombie.parentNode) {
+                                    zombie.parentNode.removeChild(zombie);
+                                }
+                            }, 300);
+                        }, index * 100);
+                    });
+
+                    setTimeout(() => {
+                        const points = killedCount * 2 * pointsMultiplier;
+                        score += points;
+                        updateUI();
+
+                        const pointNotification = document.createElement('div');
+                        pointNotification.textContent = `+${points} POINTS!`;
+                        pointNotification.style.position = 'absolute';
+                        pointNotification.style.top = '50%';
+                        pointNotification.style.left = '50%';
+                        pointNotification.style.transform = 'translate(-50%, -50%)';
+                        pointNotification.style.color = '#ffff00';
+                        pointNotification.style.fontSize = '48px';
+                        pointNotification.style.fontWeight = 'bold';
+                        pointNotification.style.textShadow = '3px 3px 0px rgba(0, 0, 0, 0.7)';
+                        pointNotification.style.zIndex = '95';
+
+                        gameArea.appendChild(pointNotification);
+
+                        setTimeout(() => {
+                            pointNotification.style.transition = 'all 1s';
+                            pointNotification.style.opacity = '0';
+                            pointNotification.style.transform = 'translate(-50%, -100%) scale(1.5)';
+                            setTimeout(() => {
+                                if (pointNotification.parentNode) {
+                                    pointNotification.parentNode.removeChild(pointNotification);
+                                }
+                            }, 1000);
+                        }, 1000);
+                    }, zombies.length * 100 + 500);
+
+                    setTimeout(() => {
+                        if (explosion.parentNode) explosion.parentNode.removeChild(explosion);
+                        if (shockwave.parentNode) shockwave.parentNode.removeChild(shockwave);
+                    }, 1000);
+                }, 50);
+            }, 50);
+        }
+
+        // Activate double points power-up
+        function activateDoublePoints() {
+            pointsMultiplier = 2;
+            doublePointsActive = true;
+
+            const doubleNotification = document.createElement('div');
+            doubleNotification.textContent = 'DOUBLE POINTS ACTIVATED!';
+            doubleNotification.style.position = 'absolute';
+            doubleNotification.style.top = '50%';
+            doubleNotification.style.left = '50%';
+            doubleNotification.style.transform = 'translate(-50%, -50%)';
+            doubleNotification.style.color = '#ffff00';
+            doubleNotification.style.fontSize = '40px';
+            doubleNotification.style.fontWeight = 'bold';
+            doubleNotification.style.textShadow = '3px 3px 0px rgba(0, 0, 0, 0.7)';
+            doubleNotification.style.zIndex = '95';
+
+            gameArea.appendChild(doubleNotification);
+
+            setTimeout(() => {
+                doubleNotification.style.transition = 'all 1s';
+                doubleNotification.style.opacity = '0';
+                doubleNotification.style.transform = 'translate(-50%, -100%) scale(1.5)';
+                setTimeout(() => {
+                    if (doubleNotification.parentNode) {
+                        doubleNotification.parentNode.removeChild(doubleNotification);
+                    }
+                }, 1000);
+            }, 1000);
+
+            setTimeout(() => {
+                doublePointsActive = false;
+                pointsMultiplier = killStreak >= 3 ? Math.min(3, Math.floor(killStreak / 3) + 1) : 1;
+            }, 10000);
+        }
+
+        // Restart game
+        restartBtn.addEventListener('click', startGame);
+
+        // Start the game initially
+        startGame();
+    </script>
+</body>
+</html>
